@@ -131,7 +131,7 @@ $PY = "..\DM-HW1-feature-feature-engineering\.venv\Scripts\python.exe"
 ```
 
 | 指令 | 產生 |
-|---|---|---|
+|---|---|
 | `src/evaluate.py` | `folds.csv` |
 | `src/baselines.py` | `results/cv_baselines_*.csv` |
 | `src/models.py` | `results/tuning_*.csv`、`best_params.json`、`figures/tuning_*.png` |
