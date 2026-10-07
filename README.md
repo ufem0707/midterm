@@ -140,7 +140,7 @@ $PY = "..\DM-HW1-feature-feature-engineering\.venv\Scripts\python.exe"
 | `src/final_test.py --confirm` | `results/test_metrics.csv`、`test_predictions.csv` |
 
 
-### 在自己的實驗中重用(ablation study)
+### 重現(for ablation study)
 ```python
 import sys; sys.path.insert(0, "../DM-HW1-model/src")
 from evaluate import load_train_folds
