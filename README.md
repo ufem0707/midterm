@@ -1,4 +1,4 @@
-# Screening Specialty Coffee Before Cupping
+# Model
 
 **杯測前篩選精品咖啡:以產地與生豆分級資訊,用線性模型預測杯測分數**
 
