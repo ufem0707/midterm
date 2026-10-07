@@ -1,21 +1,14 @@
 # Model
 
-**杯測前篩選精品咖啡:以產地與生豆分級資訊,用線性模型預測杯測分數**
-
-這是論文中**模型、baseline 與評估**部分(§5.2、§6、§7.1)的程式碼。
-資料清理與特徵工程在另一個 repo:[`DM-HW1-feature-feature-engineering`](../DM-HW1-feature-feature-engineering/)。
-
-> 📌 **狀態**:所有交叉驗證(CV)結果已完成。**測試集尚未評估**,依驗證協定,全組定案後只評估一次。
-
 ---
 
 ## 摘要
 
 精品咖啡進口商要請持證杯測師正式杯測,才知道一批生豆是否達到精品級(≥ 80 分),而杯測昂貴又耗時。
 我們**只用杯測前就能取得的資訊**(產國、產區、海拔、品種、處理法、含水率、瑕疵數等)預測 CQI 杯測總分,
-並排除所有杯測子項分數(香氣、風味等,加總即為總分,屬資料洩漏)。
+並排除所有杯測子項分數(香氣、風味等,加總即為總分)。
 
-在 1,203 筆阿拉比卡批次上,我們以依農場分組的 5 折交叉驗證評估模型:
+在 1,203 筆阿拉比卡批次上,以依農場分組的 5 折交叉驗證評估模型:
 
 - **Ridge 迴歸 + 領域特徵**的 CV MAE 為 **1.61 分**,與隨機森林相當(1.62 分;p = 0.58)。
 - 比「只看產國平均」好(1.67 分),5 折全贏,但幅度小(p = 0.064)。
@@ -47,6 +40,7 @@ CV 為 5 個 GroupKFold 折的平均 ± 標準差。
 測試集將以**群組 bootstrap**(以農場為單位重抽 2,000 次)給出 95% 信賴區間。
 
 **篩選門檻 80.5 分下的表現**(CV out-of-fold):
+模型預測低於 80.5 分，就不送杯測；80.5 分以上就送。
 
 | 方法 | 跳過的批次 | 擋下低分批次 ↑ | 錯殺好豆 ↓ |
 |---|---|---|---|
@@ -86,11 +80,11 @@ CV 為 5 個 GroupKFold 折的平均 ± 標準差。
 
 *圖 2:調參曲線。Ridge 在 α ≤ 10 時與 OLS 相同,α = 1000 時最低,α 更大則過度收縮。*
 
-### 驗證協定
+### 驗證
 1. **測試集**:依評鑑日取最後 20%(2017-05-11 起,305 筆),模擬「用過去預測未來」;所有設計定案後只評估一次。
 2. **交叉驗證**:訓練集 1,203 筆,5 折 **GroupKFold**,以農場(`group_id`)分組,同一農場的批次不會同時出現在訓練與驗證折。
    所有方法使用同一份固定的 [`folds.csv`](folds.csv)。
-3. **前處理不洩漏**:標準化、補缺值、目標編碼都包在 scikit-learn Pipeline 內,只用各折的訓練資料學習。
+3. **前處理**:標準化、補缺值、目標編碼都包在 scikit-learn Pipeline 內,只用各折的訓練資料學習。
 4. **重訓**:選定模型以全部訓練資料重新訓練,再於測試集評估。
 
 選 5 折的理由:每折約 240 筆、含 26–44 筆低於 80 分的批次,篩選指標才夠穩定;10 折時單一大農場(40 筆)會佔一折的 1/3。
@@ -117,34 +111,11 @@ DM-HW1-model/
 │   ├── collinearity.py   # VIF、OLS vs Ridge 係數、各線性變體比較
 │   ├── compare.py        # 主結果表、paired t-test、篩選門檻
 │   └── final_test.py     # 測試集評估(只執行一次)+ 群組 bootstrap
-├── results/              # 所有結果表(CSV / JSON),由程式自動產生
-├── figures/              # 所有論文用圖,由程式自動產生
-├── docs/NOTES.md         # 團隊內部筆記:評分要求對照、交接說明、待辦
+├── results/              # 所有結果表(CSV / JSON)
+├── figures/              # 所有結果圖
 ├── folds.csv             # 固定的 CV 折(row_id, fold)
-└── run_all.py            # 一行重現全部 CV 結果
+└── run_all.py            # 重現全部 CV 結果
 ```
-
----
-
-## 安裝
-
-需要 Python ≥ 3.11(pandas 3 的要求)、scikit-learn ≥ 1.8(特徵模組使用 `TargetEncoder(cv=KFold(...))`)。
-兩個 repo 放在同一層:
-
-```
-DM-HW1/
-├── DM-HW1-feature-feature-engineering/   # 資料與特徵工程
-└── DM-HW1-model/                         # 本 repo
-```
-
-```bash
-cd DM-HW1-feature-feature-engineering
-python -m venv .venv
-.venv\Scripts\python -m pip install -r requirements.txt statsmodels   # macOS / Linux:.venv/bin/python
-```
-
-套件版本:`scikit-learn==1.9.1`、`pandas==3.0.6`、`numpy==2.4.6`、`scipy==1.17.1`、`matplotlib==3.11.2`。
-若特徵 repo 放在別處,設定環境變數 `DM_FEATURE_REPO` 指向它。
 
 ---
 
@@ -160,19 +131,17 @@ $PY = "..\DM-HW1-feature-feature-engineering\.venv\Scripts\python.exe"
 & $PY src\final_test.py --confirm    # 正式評估測試集(只能執行一次)
 ```
 
-| 指令 | 產生 | 對應論文 |
+| 指令 | 產生 |
 |---|---|---|
-| `src/evaluate.py` | `folds.csv` | §6 |
-| `src/baselines.py` | `results/cv_baselines_*.csv` | §6、§7.1 |
-| `src/models.py` | `results/tuning_*.csv`、`best_params.json`、`figures/tuning_*.png` | §5.2 |
-| `src/collinearity.py` | `results/vif_setC.csv`、`coef_ols_vs_ridge.csv`、`cv_linear_variants.csv` | §5.2 |
-| `src/compare.py` | `results/main_cv_table.csv`、`paired_ttest_cv.csv`、`screening_*`、`figures/screening_tradeoff.png` | §7.1 |
-| `src/final_test.py --confirm` | `results/test_metrics.csv`、`test_predictions.csv` | §7.1 |
+| `src/evaluate.py` | `folds.csv` |
+| `src/baselines.py` | `results/cv_baselines_*.csv` |
+| `src/models.py` | `results/tuning_*.csv`、`best_params.json`、`figures/tuning_*.png` |
+| `src/collinearity.py` | `results/vif_setC.csv`、`coef_ols_vs_ridge.csv`、`cv_linear_variants.csv` |
+| `src/compare.py` | `results/main_cv_table.csv`、`paired_ttest_cv.csv`、`screening_*`、`figures/screening_tradeoff.png` |
+| `src/final_test.py --confirm` | `results/test_metrics.csv`、`test_predictions.csv` |
 
-所有隨機性固定為 `RANDOM_SEED = 42`;數字一律由程式寫入 `results/`,論文中的數字不手動複製。
-`final_test.py --confirm` 執行過一次後會拒絕再次執行,避免反覆使用測試集。
 
-### 在自己的實驗中重用(例如特徵消融)
+### 在自己的實驗中重用(ablation study)
 ```python
 import sys; sys.path.insert(0, "../DM-HW1-model/src")
 from evaluate import load_train_folds
@@ -181,16 +150,6 @@ from models import tune
 train, y, folds = load_train_folds()                       # 與主模型相同的資料與折
 curve, best, per_fold = tune("ridge", train, y, folds, feature_set="C", drop_group="origin")
 ```
-
----
-
-## 資料
-
-- **來源**:Coffee Quality Institute(CQI)評鑑資料,經 Kaggle
-  [`erwinhmtang/coffee-quality-institute-reviews-may2023`](https://www.kaggle.com/datasets/erwinhmtang/coffee-quality-institute-reviews-may2023) 取得。
-- **規模**:清理後 1,508 筆阿拉比卡批次(訓練 1,203、測試 305),評鑑日涵蓋 2010–2018 與 2022–2023。
-- 清理規則與特徵設計見特徵 repo 的 `docs/data_cleaning.md`、`docs/feature_engineering.md`。
-- 原始檔含個人資料(姓名、電話),不放進任何 repo。
 
 ---
 
